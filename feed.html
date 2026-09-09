@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sswipy — feed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="siri-cursor"><div class="glow"></div><div class="core"></div></div>
+
+<header class="feed-header">
+  <a href="index.html" class="logo">Sswipy.</a>
+  <div class="live-tag" style="background:transparent;"><span class="dot" style="background:var(--ink); animation:none;"></span> sample deck · 50 titles</div>
+</header>
+
+<main class="feed-main">
+  <div class="stage-title">
+    <h1>What's on the deck?</h1>
+    <p>50 titles, all offline sample data. Swipe right if you're in, left if you're skipping it.</p>
+    <a href="index.html" class="source-note">← back to Sswipy.</a>
+  </div>
+
+  <div class="card-zone" id="cardZone">
+    <div class="loading-block" id="loadingBlock">
+      <div class="loading-orb"></div>
+      <div class="loading-text">loading the deck…</div>
+    </div>
+  </div>
+
+  <div class="progress-row" id="progressRow" hidden>
+    <span id="progressText"></span>
+    <div class="swipe-hint">
+      <span style="color:var(--red)">← skip</span>
+      <span style="color:var(--green)">like →</span>
+    </div>
+  </div>
+</main>
+
+<footer class="feed-footer">Sample deck — offline, built-in data. Not live or sourced from Rotten Tomatoes.</footer>
+
+<script src="movies.js"></script>
+<script src="cursor.js"></script>
+<script>
+  var cardZone = document.getElementById('cardZone');
+  var progressRow = document.getElementById('progressRow');
+  var progressText = document.getElementById('progressText');
+  var queue = [];
+  var total = 0;
+  var deck = [];
+
+  function shuffle(arr){
+    for(var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function buildDeck(){
+    deck = shuffle(window.MOVIES.slice()).map(window.sswipyPickCard);
+  }
+
+  function startDeck(){
+    queue = deck.slice();
+    total = queue.length;
+    progressRow.hidden = false;
+    buildCardDOM();
+    renderCurrent();
+  }
+
+  var ratingCard, tintLayer, artBig, posterBig, titleOverlay, aboutText, ratingText, genreRow, likeStamp, nopeStamp;
+
+  function buildCardDOM(){
+    cardZone.innerHTML =
+      '<div class="rating-card-stack big" id="ratingCardStack">' +
+        '<div class="stack-behind stack-s2"></div>' +
+        '<div class="stack-behind stack-s1"></div>' +
+        '<div class="rating-card big" id="ratingCard">' +
+          '<div class="tint-layer" id="tintLayer"></div>' +
+          '<div class="stamp like big">LIKED</div>' +
+          '<div class="stamp nope big">NOPE</div>' +
+          '<div class="poster-big tall" id="posterBig">' +
+            '<div class="art-big" id="artBig"></div>' +
+            '<div class="title-overlay big" id="titleOverlay"></div>' +
+          '</div>' +
+          '<div class="meta-row big">' +
+            '<div class="about"><span class="label">About</span><span class="about-text" id="aboutText"></span></div>' +
+            '<div class="rating-big"><span class="label">Rating</span><span class="rating-value" id="ratingText"></span></div>' +
+          '</div>' +
+          '<div class="genre-row big" id="genreRow"></div>' +
+        '</div>' +
+      '</div>';
+
+    ratingCard = document.getElementById('ratingCard');
+    tintLayer = document.getElementById('tintLayer');
+    artBig = document.getElementById('artBig');
+    posterBig = document.getElementById('posterBig');
+    titleOverlay = document.getElementById('titleOverlay');
+    aboutText = document.getElementById('aboutText');
+    ratingText = document.getElementById('ratingText');
+    genreRow = document.getElementById('genreRow');
+    likeStamp = ratingCard.querySelector('.stamp.like');
+    nopeStamp = ratingCard.querySelector('.stamp.nope');
+
+    attachDrag();
+    window.sswipyAttachHoverCursor('a, button, .rating-card');
+  }
+
+  function renderCurrent(){
+    var m = queue[0];
+    posterBig.style.background = m.bg;
+    titleOverlay.style.color = m.text;
+    titleOverlay.textContent = m.title;
+    artBig.innerHTML = m.art;
+    aboutText.textContent = ' ' + m.description;
+    ratingText.textContent = '★ ' + m.rating;
+    genreRow.innerHTML = '';
+    var pill = document.createElement('span');
+    pill.className = 'genre-pill';
+    pill.style.background = m.bg;
+    pill.style.color = m.text;
+    pill.textContent = m.genre;
+    genreRow.appendChild(pill);
+
+    progressText.textContent = (total - queue.length + 1) + ' / ' + total;
+
+    ratingCard.style.transition = 'none';
+    ratingCard.style.transform = 'translate(0,26px) scale(.9) rotate(0deg)';
+    ratingCard.style.opacity = '0';
+    tintLayer.style.opacity = '0';
+    likeStamp.style.opacity = '0';
+    nopeStamp.style.opacity = '0';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        ratingCard.style.transition = 'transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s ease';
+        ratingCard.style.transform = 'translate(0,0) scale(1) rotate(0deg)';
+        ratingCard.style.opacity = '1';
+      });
+    });
+  }
+
+  function nextCard(){
+    queue.shift();
+    if(queue.length > 0){
+      renderCurrent();
+    } else {
+      progressRow.hidden = true;
+      cardZone.innerHTML =
+        '<div class="done-block">' +
+          '<div class="done-emoji">🎬</div>' +
+          '<div class="done-text">You\'re all caught up!</div>' +
+          '<div class="done-sub">That\'s all 50. Reshuffle for a fresh run through the deck.</div>' +
+          '<button class="btn-reset" id="reloadBtn">Reshuffle & start over</button>' +
+        '</div>';
+      document.getElementById('reloadBtn').addEventListener('click', function(){
+        cardZone.innerHTML = '<div class="loading-block"><div class="loading-orb"></div><div class="loading-text">reshuffling the deck…</div></div>';
+        setTimeout(function(){ buildDeck(); startDeck(); }, 400);
+      });
+      window.sswipyAttachHoverCursor('a, button, .rating-card');
+    }
+  }
+
+  var dragging = false, startX = 0, dx = 0;
+  var THRESHOLD = 120;
+
+  function attachDrag(){
+    ratingCard.addEventListener('pointerdown', function(e){
+      dragging = true; startX = e.clientX; dx = 0;
+      ratingCard.style.transition = 'none';
+      try{ ratingCard.setPointerCapture(e.pointerId); }catch(err){}
+    });
+  }
+  window.addEventListener('pointermove', function(e){
+    if(!dragging || !ratingCard) return;
+    dx = e.clientX - startX;
+    var rot = dx / 16;
+    ratingCard.style.transform = 'translate('+dx+'px,-4px) rotate('+rot+'deg)';
+    var alpha = Math.min(Math.abs(dx)/180, 0.55);
+    tintLayer.style.background = dx > 0 ? 'rgba(46,166,98,'+alpha+')' : 'rgba(226,60,60,'+alpha+')';
+    tintLayer.style.opacity = alpha > 0.03 ? '1' : '0';
+    likeStamp.style.opacity = dx > 0 ? Math.min(dx/100, 1) : 0;
+    nopeStamp.style.opacity = dx < 0 ? Math.min(-dx/100, 1) : 0;
+  });
+  window.addEventListener('pointerup', function(){
+    if(!dragging || !ratingCard) return;
+    dragging = false;
+    ratingCard.style.transition = 'transform .45s ease, opacity .45s ease';
+    if(Math.abs(dx) > THRESHOLD){
+      var dir = dx > 0 ? 1 : -1;
+      ratingCard.style.transform = 'translate('+(dir*1000)+'px,-50px) rotate('+(dir*32)+'deg)';
+      ratingCard.style.opacity = '0';
+      setTimeout(nextCard, 380);
+    } else {
+      ratingCard.style.transform = 'translate(0,0) rotate(0deg)';
+      tintLayer.style.opacity = '0';
+      likeStamp.style.opacity = '0';
+      nopeStamp.style.opacity = '0';
+    }
+    dx = 0;
+  });
+
+  buildDeck();
+  startDeck();
+</script>
+
+</body>
+</html>
