@@ -14,12 +14,12 @@ SSwipy-Movie rating website [Try in browser](https://mohithkumar-kry.github.io/S
 
 # FEATURES:
 - Has a swiping style moving rating website model .
-- cool cursors! .
+- cool cursors!.
 - Custom abstract movie pictures with help of AI.
 
 # AI Usage:
  I used AI to generate the photo cards for movies , and used AI to generate details about movies. Asked AI to create custom cursor for website.
- 
+
 # How it works?
 
 I used claude and figma to design the website, I used claude to generate photocard for movie. Since API for movie rating website like rotton tomato costs money i asked ai to create me a custom Json file for that.
